@@ -41,6 +41,25 @@ for i in $(seq 1 $RETRIES); do
     sleep 15
 done
 
+# ─── Ensure Docker is installed ──────────────────────────────────────────────
+
+info "Checking Docker installation..."
+ssh_exec 'bash -s' <<'ENDSSH'
+  if ! command -v docker &>/dev/null; then
+    echo "[INSTALL] Docker not found — installing..."
+    sudo dnf install -y docker
+    sudo systemctl enable --now docker
+    sudo usermod -aG docker ec2-user
+    sudo mkdir -p /usr/local/lib/docker/cli-plugins
+    sudo curl -fsSL \
+      "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+      -o /usr/local/lib/docker/cli-plugins/docker-compose
+    sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+  else
+    sudo systemctl start docker 2>/dev/null || true
+  fi
+ENDSSH
+
 # ─── Push docker-compose.yml ──────────────────────────────────────────────────
 
 info "Syncing docker-compose.yml..."
@@ -50,13 +69,12 @@ scp $SSH_OPTS docker/docker-compose.yml "$SSH_USER@$EC2_IP:$APP_DIR/docker-compo
 # ─── Pull Latest Images ───────────────────────────────────────────────────────
 
 info "Pulling latest images..."
-ssh_exec "cd $APP_DIR && docker compose pull --quiet"
+ssh_exec "cd $APP_DIR && sudo docker compose pull --quiet"
 
 # ─── Rolling Restart (zero-downtime order: nginx → api → postgres) ────────────
 
 info "Restarting stack [$ENVIRONMENT]..."
-ssh_exec "cd $APP_DIR && \
-    docker compose up -d --build --remove-orphans --wait"
+ssh_exec "cd $APP_DIR && sudo docker compose up -d --build --remove-orphans --wait"
 
 # ─── Health Check ─────────────────────────────────────────────────────────────
 
@@ -77,6 +95,6 @@ done
 # ─── Show Running Containers ──────────────────────────────────────────────────
 
 info "Running containers:"
-ssh_exec "docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
+ssh_exec "sudo docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'"
 
 info "Deploy complete for [$ENVIRONMENT] at $EC2_IP"
