@@ -27,3 +27,8 @@ output "ssh_command" {
   description = "SSH command to connect to EC2"
   value       = "ssh -i <your-key.pem> ec2-user@${module.compute.elastic_ip}"
 }
+
+output "ec2_security_group_id" {
+  description = "EC2 security group ID"
+  value       = module.security.ec2_security_group_id
+}

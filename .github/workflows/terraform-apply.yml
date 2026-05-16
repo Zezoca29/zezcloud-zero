@@ -87,6 +87,16 @@ jobs:
         run: |
           echo "elastic_ip=$(terraform output -raw ec2_elastic_ip)" >> "$GITHUB_OUTPUT"
           echo "instance_id=$(terraform output -raw ec2_instance_id)" >> "$GITHUB_OUTPUT"
+          echo "sg_id=$(terraform output -raw ec2_security_group_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Allow runner SSH access
+        id: allow_ssh
+        run: |
+          RUNNER_IP="$(curl -sf https://checkip.amazonaws.com)/32"
+          echo "runner_ip=$RUNNER_IP" >> "$GITHUB_OUTPUT"
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${{ steps.outputs.outputs.sg_id }}" \
+            --protocol tcp --port 22 --cidr "$RUNNER_IP" || true
 
       - name: Deploy Application
         env:
@@ -98,6 +108,14 @@ jobs:
           chmod 600 /tmp/ec2.pem
           bash scripts/deploy.sh dev "$EC2_IP" /tmp/ec2.pem
           rm -f /tmp/ec2.pem
+
+      - name: Revoke runner SSH access
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "${{ steps.outputs.outputs.sg_id }}" \
+            --protocol tcp --port 22 \
+            --cidr "${{ steps.allow_ssh.outputs.runner_ip }}" || true
 
       - name: Deployment Summary
         run: |
@@ -160,6 +178,16 @@ jobs:
         run: |
           echo "elastic_ip=$(terraform output -raw ec2_elastic_ip)" >> "$GITHUB_OUTPUT"
           echo "instance_id=$(terraform output -raw ec2_instance_id)" >> "$GITHUB_OUTPUT"
+          echo "sg_id=$(terraform output -raw ec2_security_group_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Allow runner SSH access
+        id: allow_ssh
+        run: |
+          RUNNER_IP="$(curl -sf https://checkip.amazonaws.com)/32"
+          echo "runner_ip=$RUNNER_IP" >> "$GITHUB_OUTPUT"
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${{ steps.outputs.outputs.sg_id }}" \
+            --protocol tcp --port 22 --cidr "$RUNNER_IP" || true
 
       - name: Deploy Application
         env:
@@ -171,6 +199,14 @@ jobs:
           chmod 600 /tmp/ec2.pem
           bash scripts/deploy.sh prod "$EC2_IP" /tmp/ec2.pem
           rm -f /tmp/ec2.pem
+
+      - name: Revoke runner SSH access
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "${{ steps.outputs.outputs.sg_id }}" \
+            --protocol tcp --port 22 \
+            --cidr "${{ steps.allow_ssh.outputs.runner_ip }}" || true
 
       - name: Deployment Summary
         run: |
