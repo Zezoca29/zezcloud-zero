@@ -7,8 +7,13 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY conf.d/     /etc/nginx/conf.d/
 
-# Health check endpoint support
-RUN apk add --no-cache curl
+# Generate self-signed SSL cert (replaced by real cert via Cloudflare/ACM in prod)
+RUN apk add --no-cache curl openssl && \
+    mkdir -p /etc/nginx/ssl && \
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+        -keyout /etc/nginx/ssl/key.pem \
+        -out    /etc/nginx/ssl/cert.pem \
+        -subj   "/CN=localhost/O=ZezCloud/C=BR"
 
 EXPOSE 80 443
 
