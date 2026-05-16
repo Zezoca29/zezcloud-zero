@@ -34,11 +34,7 @@ services:
 
   # ─── Spring Boot API ─────────────────────────────────────────────────────────
   api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-      args:
-        SPRING_PROFILE: ${spring_profile}
+    image: ghcr.io/zezoca29/zezcloud-api:latest
     container_name: zezcloud-api
     restart: unless-stopped
     environment:
@@ -67,9 +63,7 @@ services:
 
   # ─── Nginx Reverse Proxy ──────────────────────────────────────────────────────
   nginx:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
+    image: ghcr.io/zezoca29/zezcloud-nginx:latest
     container_name: zezcloud-nginx
     restart: unless-stopped
     ports:

@@ -66,15 +66,42 @@ info "Syncing docker-compose.yml..."
 ssh_exec "sudo mkdir -p $APP_DIR && sudo chown $SSH_USER:$SSH_USER $APP_DIR"
 scp $SSH_OPTS docker/docker-compose.yml "$SSH_USER@$EC2_IP:$APP_DIR/docker-compose.yml"
 
+# ─── Create .env from SSM ─────────────────────────────────────────────────────
+
+info "Fetching secrets from SSM and writing .env..."
+SSM_PREFIX="/${ENVIRONMENT:-dev}"
+get_ssm() {
+    aws ssm get-parameter --name "$1" --with-decryption \
+        --query Parameter.Value --output text 2>/dev/null || echo ""
+}
+
+DB_NAME=$(get_ssm "/zezcloud/${ENVIRONMENT}/db/name")
+DB_USER=$(get_ssm "/zezcloud/${ENVIRONMENT}/db/user")
+DB_PASS=$(get_ssm "/zezcloud/${ENVIRONMENT}/db/password")
+
+ssh $SSH_OPTS "$SSH_USER@$EC2_IP" "cat > $APP_DIR/.env" <<EOF
+db_name=${DB_NAME}
+db_user=${DB_USER}
+db_password=${DB_PASS}
+spring_profile=${ENVIRONMENT}
+app_domain=localhost
+EOF
+
+# ─── Authenticate EC2 with GHCR ──────────────────────────────────────────────
+
+info "Authenticating EC2 with GHCR..."
+echo "${GHCR_TOKEN}" | ssh $SSH_OPTS "$SSH_USER@$EC2_IP" \
+    "sudo docker login ghcr.io -u ${GHCR_USER} --password-stdin"
+
 # ─── Pull Latest Images ───────────────────────────────────────────────────────
 
 info "Pulling latest images..."
 ssh_exec "cd $APP_DIR && sudo docker compose pull --quiet"
 
-# ─── Rolling Restart (zero-downtime order: nginx → api → postgres) ────────────
+# ─── Rolling Restart ──────────────────────────────────────────────────────────
 
 info "Restarting stack [$ENVIRONMENT]..."
-ssh_exec "cd $APP_DIR && sudo docker compose up -d --build --remove-orphans --wait"
+ssh_exec "cd $APP_DIR && sudo docker compose up -d --remove-orphans --wait"
 
 # ─── Health Check ─────────────────────────────────────────────────────────────
 
