@@ -1,0 +1,10 @@
+spring:
+  jpa:
+    show-sql: true
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    com.zezcloud: DEBUG
+    org.springframework.web: DEBUG

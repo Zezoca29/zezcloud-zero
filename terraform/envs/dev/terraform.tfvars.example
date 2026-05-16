@@ -1,0 +1,34 @@
+# terraform/envs/dev/terraform.tfvars.example
+# Copy to terraform.tfvars and fill in real values.
+# NEVER commit terraform.tfvars — it's in .gitignore.
+
+project    = "zezcloud"
+aws_region = "us-east-1"
+
+app_domain = "dev.yourdomain.com"
+
+# Network
+vpc_cidr             = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24"]
+
+# Access
+# Generate with: ssh-keygen -t ed25519 -C "zezcloud-dev"
+ec2_public_key    = "ssh-ed25519 AAAA... your-public-key-here"
+ssh_allowed_cidrs = ["YOUR_IP/32"]
+
+# Database
+db_name     = "zezclouddb"
+db_user     = "zezcloud"
+db_password = "CHANGE_ME_USE_STRONG_PASSWORD"
+
+# Remote state (must match backend config in main.tf)
+state_bucket_name     = "zezcloud-terraform-state"
+state_lock_table_name = "zezcloud-terraform-lock"
+
+# GitHub (for OIDC role trust)
+github_oidc_provider_arn = "arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+github_repo              = "youruser/zezcloud-zero"
+
+# Alerts (optional)
+alert_email = ""

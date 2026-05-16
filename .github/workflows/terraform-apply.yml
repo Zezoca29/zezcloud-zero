@@ -1,0 +1,180 @@
+################################################################################
+# Terraform Apply — runs on merge to main
+# Uses manual approval gate before applying to prod.
+################################################################################
+
+name: Terraform Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "docker/**"
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "dev"
+        type: choice
+        options: [dev, prod]
+
+permissions:
+  id-token: write
+  contents: read
+  deployments: write
+
+env:
+  TF_VERSION: "1.7.5"
+  AWS_REGION: "us-east-1"
+
+jobs:
+  # ─── Deploy Dev ───────────────────────────────────────────────────────────────
+  deploy-dev:
+    name: Apply — dev
+    runs-on: ubuntu-latest
+    environment: dev
+    if: github.event_name == 'push' || inputs.environment == 'dev'
+    concurrency:
+      group: terraform-dev
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: terraform/envs/dev
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        working-directory: terraform/envs/dev
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: terraform/envs/dev
+        run: |
+          terraform plan \
+            -var="ec2_public_key=${{ secrets.EC2_PUBLIC_KEY }}" \
+            -var="ssh_allowed_cidrs=[\"${{ secrets.SSH_ALLOWED_CIDR }}\"]" \
+            -var="db_password=${{ secrets.DB_PASSWORD }}" \
+            -var="app_domain=${{ secrets.APP_DOMAIN_DEV }}" \
+            -var="github_oidc_provider_arn=${{ secrets.GITHUB_OIDC_PROVIDER_ARN }}" \
+            -var="github_repo=${{ github.repository }}" \
+            -input=false \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform/envs/dev
+        run: terraform apply -input=false tfplan
+
+      - name: Get Outputs
+        working-directory: terraform/envs/dev
+        id: outputs
+        run: |
+          echo "elastic_ip=$(terraform output -raw ec2_elastic_ip)" >> "$GITHUB_OUTPUT"
+          echo "instance_id=$(terraform output -raw ec2_instance_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Application
+        env:
+          EC2_IP: ${{ steps.outputs.outputs.elastic_ip }}
+          EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+          ENVIRONMENT: dev
+        run: |
+          echo "$EC2_KEY" > /tmp/ec2.pem
+          chmod 600 /tmp/ec2.pem
+          bash scripts/deploy.sh dev "$EC2_IP" /tmp/ec2.pem
+          rm -f /tmp/ec2.pem
+
+      - name: Deployment Summary
+        run: |
+          echo "### Dev Deployment Complete ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Instance:** \`${{ steps.outputs.outputs.instance_id }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **IP:** \`${{ steps.outputs.outputs.elastic_ip }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ─── Deploy Prod (Manual Approval) ───────────────────────────────────────────
+  deploy-prod:
+    name: Apply — prod
+    runs-on: ubuntu-latest
+    environment: prod  # GitHub environment with required reviewers
+    needs: deploy-dev
+    if: github.event_name == 'push' || inputs.environment == 'prod'
+    concurrency:
+      group: terraform-prod
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: terraform/envs/prod
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: terraform/envs/prod
+        run: |
+          terraform plan \
+            -var="ec2_public_key=${{ secrets.EC2_PUBLIC_KEY }}" \
+            -var="ssh_allowed_cidrs=[\"${{ secrets.SSH_ALLOWED_CIDR }}\"]" \
+            -var="db_password=${{ secrets.DB_PASSWORD_PROD }}" \
+            -var="app_domain=${{ secrets.APP_DOMAIN_PROD }}" \
+            -var="github_oidc_provider_arn=${{ secrets.GITHUB_OIDC_PROVIDER_ARN }}" \
+            -var="github_repo=${{ github.repository }}" \
+            -var="alert_email=${{ secrets.ALERT_EMAIL }}" \
+            -input=false \
+            -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform/envs/prod
+        run: terraform apply -input=false tfplan
+
+      - name: Get Outputs
+        working-directory: terraform/envs/prod
+        id: outputs
+        run: |
+          echo "elastic_ip=$(terraform output -raw ec2_elastic_ip)" >> "$GITHUB_OUTPUT"
+          echo "instance_id=$(terraform output -raw ec2_instance_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Application
+        env:
+          EC2_IP: ${{ steps.outputs.outputs.elastic_ip }}
+          EC2_KEY: ${{ secrets.EC2_PRIVATE_KEY }}
+          ENVIRONMENT: prod
+        run: |
+          echo "$EC2_KEY" > /tmp/ec2.pem
+          chmod 600 /tmp/ec2.pem
+          bash scripts/deploy.sh prod "$EC2_IP" /tmp/ec2.pem
+          rm -f /tmp/ec2.pem
+
+      - name: Deployment Summary
+        run: |
+          echo "### Prod Deployment Complete ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Instance:** \`${{ steps.outputs.outputs.instance_id }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **IP:** \`${{ steps.outputs.outputs.elastic_ip }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
