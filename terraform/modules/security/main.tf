@@ -265,7 +265,8 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
           "logs:DescribeLogGroups", "logs:ListTagsLogGroup",
           "logs:PutRetentionPolicy", "logs:DeleteRetentionPolicy",
           "cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms",
-          "cloudwatch:DescribeAlarms",
+          "cloudwatch:DescribeAlarms", "cloudwatch:ListTagsForResource",
+          "cloudwatch:TagResource", "cloudwatch:UntagResource",
           "cloudwatch:PutDashboard", "cloudwatch:GetDashboard",
           "cloudwatch:DeleteDashboards", "cloudwatch:ListDashboards"
         ]
