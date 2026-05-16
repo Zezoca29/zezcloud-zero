@@ -230,15 +230,21 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
         ]
         Resource = "arn:aws:dynamodb:*:*:table/${var.state_lock_table_name}"
       },
-      # SSM Parameter Store
+      # SSM Parameter Store — parameter-level actions
       {
         Effect = "Allow"
         Action = [
           "ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath",
-          "ssm:PutParameter", "ssm:DeleteParameter", "ssm:DescribeParameters",
+          "ssm:PutParameter", "ssm:DeleteParameter",
           "ssm:AddTagsToResource", "ssm:ListTagsForResource"
         ]
         Resource = "arn:aws:ssm:*:*:parameter/${var.project}/*"
+      },
+      # SSM DescribeParameters requires resource "*" (no resource-level support)
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:DescribeParameters"]
+        Resource = "*"
       },
       # SNS
       {
