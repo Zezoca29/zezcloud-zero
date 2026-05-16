@@ -42,6 +42,10 @@ jobs:
     concurrency:
       group: terraform-dev
       cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # OIDC
 
     steps:
       - name: Checkout
