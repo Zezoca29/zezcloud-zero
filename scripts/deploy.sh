@@ -44,6 +44,7 @@ done
 # ─── Push docker-compose.yml ──────────────────────────────────────────────────
 
 info "Syncing docker-compose.yml..."
+ssh_exec "sudo mkdir -p $APP_DIR && sudo chown $SSH_USER:$SSH_USER $APP_DIR"
 scp $SSH_OPTS docker/docker-compose.yml "$SSH_USER@$EC2_IP:$APP_DIR/docker-compose.yml"
 
 # ─── Pull Latest Images ───────────────────────────────────────────────────────
