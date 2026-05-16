@@ -114,7 +114,7 @@ In your repository: **Settings → Secrets and variables → Actions**
 | `DB_PASSWORD` | Strong random password |
 | `APP_DOMAIN_DEV` | `dev.yourdomain.com` |
 | `SSH_ALLOWED_CIDR` | `$(curl -s checkip.amazonaws.com)/32` |
-| `GITHUB_OIDC_PROVIDER_ARN` | Backend output |
+| `AWS_OIDC_PROVIDER_ARN` | Backend output |
 
 ---
 

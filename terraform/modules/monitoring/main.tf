@@ -2,6 +2,8 @@
 # Monitoring Module — CloudWatch Alarms (Free Tier optimized)
 ################################################################################
 
+data "aws_region" "current" {}
+
 locals {
   name_prefix = "${var.project}-${var.environment}"
 
@@ -124,6 +126,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "CPU Utilization"
+          region = data.aws_region.current.name
           period = 300
           metrics = [["AWS/EC2", "CPUUtilization", "InstanceId", var.instance_id]]
           view   = "timeSeries"
@@ -134,6 +137,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "Memory Utilization"
+          region = data.aws_region.current.name
           period = 300
           metrics = [["CWAgent", "mem_used_percent", "InstanceId", var.instance_id, "Environment", var.environment]]
           view   = "timeSeries"
@@ -144,6 +148,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "Disk Utilization"
+          region = data.aws_region.current.name
           period = 300
           metrics = [["CWAgent", "disk_used_percent", "InstanceId", var.instance_id, "Environment", var.environment, "path", "/"]]
           view   = "timeSeries"

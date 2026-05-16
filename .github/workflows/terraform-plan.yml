@@ -105,7 +105,7 @@ jobs:
             -var="ssh_allowed_cidrs=[\"${{ secrets.SSH_ALLOWED_CIDR }}\"]" \
             -var="db_password=${{ secrets.DB_PASSWORD }}" \
             -var="app_domain=${{ secrets.APP_DOMAIN_DEV }}" \
-            -var="github_oidc_provider_arn=${{ secrets.GITHUB_OIDC_PROVIDER_ARN }}" \
+            -var="github_oidc_provider_arn=${{ secrets.AWS_OIDC_PROVIDER_ARN }}" \
             -var="github_repo=${{ github.repository }}" \
             -no-color \
             -detailed-exitcode \

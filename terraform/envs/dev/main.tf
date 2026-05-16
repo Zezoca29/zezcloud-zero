@@ -13,7 +13,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "zezcloud-terraform-state"
+    bucket         = "zezcloud-terraform-state-136769278205"
     key            = "dev/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "zezcloud-terraform-lock"
@@ -50,7 +50,7 @@ locals {
   # Use only one AZ in dev to minimize surface area
   availability_zones = [data.aws_availability_zones.available.names[0]]
 
-  docker_compose_content = templatefile("${path.module}/../../docker/docker-compose.yml", {
+  docker_compose_content = templatefile("${path.module}/../../../docker/docker-compose.yml", {
     db_name        = var.db_name
     db_user        = var.db_user
     db_password    = var.db_password
@@ -102,7 +102,7 @@ module "compute" {
 
   project                = var.project
   environment            = local.environment
-  instance_type          = "t2.micro" # Free Tier
+  instance_type          = "t3.micro" # Free Tier
   public_key             = var.ec2_public_key
   public_subnet_id       = module.networking.public_subnet_ids[0]
   security_group_ids     = [module.security.ec2_security_group_id]
