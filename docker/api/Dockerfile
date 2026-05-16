@@ -17,7 +17,8 @@ RUN mvn clean package -DskipTests -q
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
-RUN addgroup --system zezcloud && adduser --system --ingroup zezcloud zezcloud
+RUN apk add --no-cache curl && \
+    addgroup --system zezcloud && adduser --system --ingroup zezcloud zezcloud
 
 WORKDIR /app
 
