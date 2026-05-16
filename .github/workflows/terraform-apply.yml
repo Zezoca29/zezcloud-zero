@@ -12,6 +12,7 @@ on:
       - "terraform/**"
       - "docker/**"
       - "scripts/**"
+      - ".github/workflows/**"
 
   workflow_dispatch:
     inputs:
