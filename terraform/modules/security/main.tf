@@ -189,9 +189,6 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
           "iam:CreateRole", "iam:DeleteRole", "iam:GetRole",
           "iam:AttachRolePolicy", "iam:DetachRolePolicy",
           "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy",
-          "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
-          "iam:GetInstanceProfile", "iam:AddRoleToInstanceProfile",
-          "iam:RemoveRoleFromInstanceProfile",
           "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
           "iam:ListInstanceProfilesForRole",
           "iam:PassRole",
@@ -199,6 +196,16 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
           "iam:UpdateAssumeRolePolicy"
         ]
         Resource = "arn:aws:iam::*:role/${var.project}-*"
+      },
+      # IAM — instance profiles
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile",
+          "iam:GetInstanceProfile", "iam:AddRoleToInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile"
+        ]
+        Resource = "arn:aws:iam::*:instance-profile/${var.project}-*"
       },
       # S3 — Terraform state bucket
       {
@@ -223,6 +230,27 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
         ]
         Resource = "arn:aws:dynamodb:*:*:table/${var.state_lock_table_name}"
       },
+      # SSM Parameter Store
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath",
+          "ssm:PutParameter", "ssm:DeleteParameter", "ssm:DescribeParameters",
+          "ssm:AddTagsToResource", "ssm:ListTagsForResource"
+        ]
+        Resource = "arn:aws:ssm:*:*:parameter/${var.project}/*"
+      },
+      # SNS
+      {
+        Effect = "Allow"
+        Action = [
+          "sns:CreateTopic", "sns:DeleteTopic",
+          "sns:GetTopicAttributes", "sns:SetTopicAttributes",
+          "sns:Subscribe", "sns:Unsubscribe",
+          "sns:ListTagsForResource", "sns:TagResource", "sns:UntagResource"
+        ]
+        Resource = "arn:aws:sns:*:*:${var.project}-*"
+      },
       # CloudWatch
       {
         Effect = "Allow"
@@ -231,7 +259,9 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
           "logs:DescribeLogGroups", "logs:ListTagsLogGroup",
           "logs:PutRetentionPolicy", "logs:DeleteRetentionPolicy",
           "cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms",
-          "cloudwatch:DescribeAlarms"
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:PutDashboard", "cloudwatch:GetDashboard",
+          "cloudwatch:DeleteDashboards", "cloudwatch:ListDashboards"
         ]
         Resource = "*"
       }

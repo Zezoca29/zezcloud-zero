@@ -66,7 +66,7 @@ variable "db_password" {
 variable "state_bucket_name" {
   description = "S3 bucket name for Terraform state"
   type        = string
-  default     = "zezcloud-terraform-state"
+  default     = "zezcloud-terraform-state-136769278205"
 }
 
 variable "state_lock_table_name" {
