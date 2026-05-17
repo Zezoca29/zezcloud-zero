@@ -169,7 +169,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: prod  # GitHub environment with required reviewers
     needs: deploy-dev
-    if: github.event_name == 'push' || inputs.environment == 'prod'
+    if: inputs.environment == 'prod'
     concurrency:
       group: terraform-prod
       cancel-in-progress: false
