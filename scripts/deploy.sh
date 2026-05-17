@@ -106,11 +106,10 @@ ssh_exec "cd $APP_DIR && sudo docker compose up -d --remove-orphans --wait"
 # ─── Health Check ─────────────────────────────────────────────────────────────
 
 info "Running health check..."
-HEALTH_URL="http://$EC2_IP/actuator/health"
+HEALTH_URL="http://$EC2_IP/health"
 RETRIES=6
 for i in $(seq 1 $RETRIES); do
-    STATUS=$(curl -sf --max-time 10 "$HEALTH_URL" | grep -o '"status":"[^"]*"' | cut -d'"' -f4 || true)
-    if [[ "$STATUS" == "UP" ]]; then
+    if curl -sf --max-time 10 "$HEALTH_URL" &>/dev/null; then
         info "Health check passed. Application is UP."
         break
     fi
