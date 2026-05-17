@@ -103,13 +103,12 @@ ssh_exec "cd $APP_DIR && sudo docker compose pull --quiet"
 info "Restarting stack [$ENVIRONMENT]..."
 ssh_exec "cd $APP_DIR && sudo docker compose up -d --remove-orphans --wait"
 
-# ─── Health Check ─────────────────────────────────────────────────────────────
+# ─── Health Check (via SSH — porta 80 restrita a Cloudflare) ─────────────────
 
 info "Running health check..."
-HEALTH_URL="http://$EC2_IP/health"
 RETRIES=6
 for i in $(seq 1 $RETRIES); do
-    if curl -sf --max-time 10 "$HEALTH_URL" &>/dev/null; then
+    if ssh_exec "curl -sf --max-time 10 http://localhost/health" &>/dev/null; then
         info "Health check passed. Application is UP."
         break
     fi
